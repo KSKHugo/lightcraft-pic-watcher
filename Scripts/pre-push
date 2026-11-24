@@ -1,0 +1,12 @@
+#!/bin/bash
+# Nothing reaches GitHub unchecked: the tests (once a Swift package exists) and the
+# security check (Scripts/security_check.sh) must pass, otherwise the push is refused.
+# Installed by Scripts/install_hooks.sh.
+set -e
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+if [ -f Package.swift ]; then
+    echo "== Tests (swift test)"
+    swift test --scratch-path "$HOME/Library/Caches/LightCraftPicWatcher-build" --quiet
+fi
+exec "$root/Scripts/security_check.sh"

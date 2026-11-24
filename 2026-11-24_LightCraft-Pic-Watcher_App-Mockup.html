@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LightCraft Pic Watcher</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #e9e6e0; --window: #f7f5f1; --side: #efece6; --panel: #ffffff; --raised: #f3f0ea;
+  --ink: #1f1d1a; --muted: #68645d; --line: #dcd8d0;
+  --accent: #b04e1c; --on-accent: #ffffff; --accent-soft: #f6e4d9;
+  --ok: #2b7549; --ok-soft: #dff0e5; --warn: #8a5a00; --warn-soft: #f8ecd0; --open: #5a5f6b; --open-soft: #e7e8ec;
+  --bad: #a8321f; --bad-soft: #f8dfd9;
+  --shadow: 0 24px 60px rgba(50, 40, 25, .22);
+  --wall: linear-gradient(160deg, #c9b8a3 0%, #a98e78 38%, #6f6a7d 100%);
+  --menubar: rgba(246, 244, 240, .82); --menubar-ink: #1f1d1a; --knock: #f3f1ec; --mb-solid: #e9e6e1;
+  --pop: rgba(250, 248, 245, .97);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121110; --window: #1d1c1a; --side: #181715; --panel: #262421; --raised: #2e2b27;
+    --ink: #f3f0ea; --muted: #aaa59c; --line: #3a3732;
+    --accent: #ec9160; --on-accent: #231208; --accent-soft: #43291b;
+    --ok: #7ccf9b; --ok-soft: #1f3528; --warn: #e6bc62; --warn-soft: #3a2f17; --open: #b4b8c3; --open-soft: #30323a;
+    --bad: #f08a76; --bad-soft: #43221c;
+    --shadow: 0 24px 60px rgba(0, 0, 0, .55);
+    --wall: linear-gradient(160deg, #3a3029 0%, #2a2430 45%, #15161d 100%);
+    --menubar: rgba(28, 27, 25, .82); --menubar-ink: #f3f0ea; --knock: #232220; --mb-solid: #2b2926;
+    --pop: rgba(36, 34, 31, .97);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121110; --window: #1d1c1a; --side: #181715; --panel: #262421; --raised: #2e2b27;
+  --ink: #f3f0ea; --muted: #aaa59c; --line: #3a3732;
+  --accent: #ec9160; --on-accent: #231208; --accent-soft: #43291b;
+  --ok: #7ccf9b; --ok-soft: #1f3528; --warn: #e6bc62; --warn-soft: #3a2f17; --open: #b4b8c3; --open-soft: #30323a;
+  --bad: #f08a76; --bad-soft: #43221c;
+  --shadow: 0 24px 60px rgba(0, 0, 0, .55);
+  --wall: linear-gradient(160deg, #3a3029 0%, #2a2430 45%, #15161d 100%);
+  --menubar: rgba(28, 27, 25, .82); --menubar-ink: #f3f0ea; --knock: #232220; --mb-solid: #2b2926;
+  --pop: rgba(36, 34, 31, .97);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  padding: 24px 16px 40px; -webkit-font-smoothing: antialiased;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+h1, h2, h3, p { margin: 0; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+.top { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+.top h1 { font-size: 22px; letter-spacing: -.01em; }
+.top h1 small { font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 2px 7px; vertical-align: 3px; margin-left: 6px; }
+.top p { color: var(--muted); font-size: 13px; margin-top: 3px; max-width: 760px; }
+.theme { background: none; border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; font-size: 12px; color: var(--muted); flex: none; }
+.tabs { display: flex; gap: 4px; padding: 3px; background: var(--side); border: 1px solid var(--line); border-radius: 9px; width: max-content; max-width: 100%; overflow-x: auto; margin-bottom: 16px; }
+.tabs button { border: 0; background: none; padding: 6px 14px; border-radius: 6px; color: var(--muted); white-space: nowrap; font-weight: 500; }
+.tabs button[aria-selected="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+
+/* desktop scene */
+.desk { position: relative; height: 560px; border-radius: 12px; overflow: hidden; background: var(--wall); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.menubar { position: absolute; inset: 0 0 auto 0; height: 28px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 14px; background: var(--menubar); color: var(--menubar-ink); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); font-size: 13px; z-index: 5; }
+.mb-left { display: flex; gap: 16px; white-space: nowrap; overflow: hidden; }
+.mb-left span { opacity: .85; }
+.mb-right { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+.mb-right .dim { opacity: .55; font-size: 12px; }
+.tray { border: 0; background: none; padding: 2px 6px; border-radius: 5px; display: grid; place-items: center; color: var(--menubar-ink); --knock: var(--mb-solid); }
+.tray[aria-expanded="true"] { background: rgba(127,127,127,.28); }
+.ticon { display: block; }
+.ticon .badge > g { display: none; }
+.ticon.busy .b-sync, .ticon.done .b-done, .ticon.paused .b-pause, .ticon.warn .b-warn { display: inline; }
+.ticon.idle .knock { display: none; }
+.ticon .knock { fill: var(--knock); }
+.ticon.busy.spin .b-sync { animation: spin 1.1s linear infinite; transform-origin: 15.5px 13px; transform-box: view-box; }
+.ticon.done .b-done { animation: pop .35s ease-out; transform-origin: 15.5px 13px; transform-box: view-box; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.finder { position: absolute; left: 28px; top: 62px; width: min(520px, calc(100% - 430px)); min-width: 330px; background: var(--window); border: 1px solid var(--line); border-radius: 11px; box-shadow: 0 18px 44px rgba(0,0,0,.28); overflow: hidden; }
+.fbar { height: 38px; display: flex; align-items: center; gap: 12px; padding: 0 12px; background: var(--side); border-bottom: 1px solid var(--line); }
+.lights { display: flex; gap: 7px; } .lights i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.lights i:nth-child(1) { background: #ec6a5e; } .lights i:nth-child(2) { background: #f4bf4f; } .lights i:nth-child(3) { background: #61c554; }
+.fbar strong { font-size: 13px; }
+.fhead, .frow { display: grid; grid-template-columns: minmax(0, 1fr) 82px 92px; gap: 10px; align-items: center; padding: 0 14px; }
+.fhead { font-size: 11.5px; color: var(--muted); height: 26px; border-bottom: 1px solid var(--line); }
+.flist { max-height: 300px; overflow: auto; }
+.frow { height: 34px; font-size: 13px; }
+.frow:nth-child(even) { background: var(--raised); }
+.frow .fn { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.frow .fn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frow .partial { color: var(--muted); }
+.frow .meta { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.frow.new { animation: flash 1.4s ease-out; }
+@keyframes flash { from { background: var(--accent-soft); } }
+.doc { width: 18px; height: 22px; flex: none; border-radius: 3px; background: var(--panel); border: 1px solid var(--line); display: grid; place-items: center; font-size: 7px; font-weight: 700; color: var(--muted); }
+.mini { height: 4px; border-radius: 2px; background: var(--line); width: 70px; overflow: hidden; }
+.mini i { display: block; height: 100%; background: var(--accent); }
+.fstat { padding: 8px 14px; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line); }
+
+.thumb { flex: none; border-radius: 4px; position: relative; overflow: hidden; background: linear-gradient(180deg, hsl(var(--h) 55% 72%), hsl(calc(var(--h) + 25) 45% 48%)); }
+.thumb::after { content: ""; position: absolute; inset: 45% 0 0 0; background: hsl(calc(var(--h) + 160) 25% 26% / .75); clip-path: polygon(0 100%, 0 55%, 22% 20%, 40% 60%, 62% 5%, 100% 70%, 100% 100%); }
+.thumb.s { width: 22px; height: 18px; }
+.thumb.m { width: 40px; height: 32px; border-radius: 6px; }
+
+.popover { position: absolute; top: 34px; right: 12px; width: 360px; max-width: calc(100% - 24px); background: var(--pop); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 22px 54px rgba(0,0,0,.32); z-index: 6; overflow: hidden; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+.p-head { display: flex; gap: 11px; align-items: center; padding: 13px 14px 11px; border-bottom: 1px solid var(--line); }
+.p-head .appic { width: 34px; height: 34px; flex: none; border-radius: 9px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; --knock: var(--accent-soft); }
+.p-head .tx { min-width: 0; flex: 1; }
+.p-head strong { display: block; font-size: 13.5px; }
+.p-head span { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p-route { padding: 8px 14px; font-size: 11.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; }
+.p-route code { font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
+.p-hint { margin: 10px 14px 0; padding: 8px 10px; border-radius: 8px; font-size: 12px; line-height: 1.4; }
+.p-hint.warn { background: var(--warn-soft); color: var(--warn); }
+.p-hint.bad { background: var(--bad-soft); color: var(--bad); }
+.p-list { list-style: none; margin: 0; padding: 6px 6px; max-height: 268px; overflow: auto; }
+.p-list li { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; }
+.p-list li:hover { background: var(--raised); }
+.p-list .tx { min-width: 0; flex: 1; }
+.p-list .tx strong { display: block; font-size: 12.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p-list .tx span { display: block; font-size: 11.5px; color: var(--muted); }
+.p-list .bar { height: 3px; border-radius: 2px; background: var(--line); margin-top: 4px; overflow: hidden; }
+.p-list .bar i { display: block; height: 100%; background: var(--accent); transition: width .15s linear; }
+.p-empty { padding: 18px 14px; color: var(--muted); font-size: 12.5px; text-align: center; }
+.chip { font-size: 11px; font-weight: 600; border-radius: 999px; padding: 2px 8px; white-space: nowrap; flex: none; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.chip.open { background: var(--open-soft); color: var(--open); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.acc { background: var(--accent-soft); color: var(--accent); }
+.chip.bad { background: var(--bad-soft); color: var(--bad); }
+.p-actions { display: flex; gap: 6px; padding: 9px 12px; border-top: 1px solid var(--line); }
+.p-actions button { flex: 1; border: 1px solid var(--line); background: var(--panel); border-radius: 7px; padding: 5px 6px; font-size: 12px; white-space: nowrap; }
+.p-actions button:hover { background: var(--raised); }
+.p-menu { border-top: 1px solid var(--line); padding: 4px 6px 6px; }
+.p-menu button { display: flex; justify-content: space-between; width: 100%; text-align: left; border: 0; background: none; padding: 5px 8px; border-radius: 6px; font-size: 13px; }
+.p-menu button:hover { background: var(--accent); color: var(--on-accent); }
+.p-menu kbd { font: inherit; opacity: .6; }
+
+.notes { position: absolute; top: 36px; right: 386px; width: 330px; display: flex; flex-direction: column; gap: 8px; z-index: 7; pointer-events: none; }
+.desk.popclosed .notes { right: 12px; }
+.note { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; background: var(--pop); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 30px rgba(0,0,0,.25); font-size: 12.5px; animation: slide .3s ease-out; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.note .ic { width: 30px; height: 30px; flex: none; border-radius: 8px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; --knock: var(--accent-soft); }
+.note strong { display: block; font-size: 12.5px; }
+.note span { color: var(--muted); }
+@keyframes slide { from { transform: translateX(30px); opacity: 0; } }
+
+.below { display: grid; grid-template-columns: 300px minmax(0, 1fr) 280px; gap: 14px; margin-top: 16px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.card h2 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; margin-bottom: 11px; }
+.sim { display: flex; flex-direction: column; gap: 7px; }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 7px; padding: 6px 13px; font-weight: 500; white-space: nowrap; text-align: left; }
+.btn:hover:not(:disabled) { background: var(--raised); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.btn.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.07); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn small { color: var(--muted); font-weight: 400; margin-left: 4px; }
+.btn.primary small { color: inherit; opacity: .8; }
+.sim hr { border: 0; border-top: 1px solid var(--line); margin: 5px 0; }
+.toggle { display: flex; align-items: center; gap: 9px; font-size: 13px; cursor: pointer; }
+.toggle input { accent-color: var(--accent); width: 15px; height: 15px; }
+.log { list-style: none; margin: 0; padding: 0; font-size: 12.5px; max-height: 302px; overflow: auto; }
+.log li { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.log li:last-child { border-bottom: 0; }
+.log time { color: var(--muted); font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; padding-top: 1px; }
+.log .ok { color: var(--ok); } .log .warn { color: var(--warn); } .log .muted { color: var(--muted); }
+.legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.legend div { display: flex; align-items: center; gap: 9px; font-size: 12.5px; }
+.legend .sw { width: 40px; height: 34px; border-radius: 8px; background: var(--raised); display: grid; place-items: center; flex: none; --knock: var(--raised); }
+.legend-note { margin-top: 12px; font-size: 12px; color: var(--muted); }
+
+/* windows */
+.window { background: var(--window); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+.titlebar { display: flex; align-items: center; gap: 14px; padding: 0 14px; height: 42px; background: var(--side); border-bottom: 1px solid var(--line); }
+.titlebar strong { font-size: 13px; font-weight: 600; }
+.titlebar span { color: var(--muted); font-size: 12px; margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prefs { max-width: 720px; margin: 0 auto; }
+.ptabs { display: flex; justify-content: center; gap: 4px; padding: 8px; background: var(--side); border-bottom: 1px solid var(--line); overflow-x: auto; }
+.ptabs button { border: 0; background: none; border-radius: 7px; padding: 6px 12px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11.5px; color: var(--muted); min-width: 76px; }
+.ptabs button svg { width: 22px; height: 22px; }
+.ptabs button[aria-selected="true"] { background: var(--panel); color: var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+.pbody { padding: 22px 28px 26px; }
+.form { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 14px 18px; align-items: start; }
+.form > label, .form > .lab { text-align: right; color: var(--ink); padding-top: 5px; font-size: 13px; }
+.form .ctl { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.form .help { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.form hr { grid-column: 1 / -1; border: 0; border-top: 1px solid var(--line); margin: 2px 0; }
+.form select, .form input[type="text"], .form input[type="number"] { border: 1px solid var(--line); background: var(--panel); border-radius: 7px; padding: 5px 9px; min-width: 0; max-width: 100%; }
+.form input[type="number"] { width: 90px; }
+.radio, .check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; cursor: pointer; }
+.radio input, .check input { accent-color: var(--accent); margin-top: 3px; flex: none; }
+.pathpick { display: flex; gap: 8px; align-items: center; min-width: 0; }
+.pathpick select { flex: 1; font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.statusbox { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--ok-soft); color: var(--ok); margin-bottom: 18px; }
+.statusbox.warn { background: var(--warn-soft); color: var(--warn); }
+.statusbox strong { display: block; color: inherit; }
+.statusbox span { font-size: 12.5px; color: var(--ink); opacity: .85; }
+.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; font-size: 13px; }
+.steps code, .mono { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--raised); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
+.list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--muted); }
+.list b { color: var(--ink); font-weight: 600; }
+.pfoot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+
+/* setup */
+.setup { max-width: 640px; margin: 0 auto; }
+.sbody { padding: 26px 32px 22px; }
+.dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 18px; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.dots i.on { background: var(--accent); }
+.sbody h2 { font-size: 20px; text-align: center; margin-bottom: 6px; letter-spacing: -.01em; }
+.sbody .lead { color: var(--muted); text-align: center; max-width: 480px; margin: 0 auto 20px; }
+.sysdlg { max-width: 300px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 16px 14px; text-align: center; box-shadow: 0 10px 28px rgba(0,0,0,.18); }
+.sysdlg .appic { width: 44px; height: 44px; margin: 0 auto 10px; border-radius: 11px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; --knock: var(--accent-soft); }
+.sysdlg strong { display: block; font-size: 13px; margin-bottom: 5px; }
+.sysdlg p { font-size: 11.5px; color: var(--muted); margin-bottom: 14px; }
+.sysdlg .row { display: flex; gap: 8px; }
+.sysdlg .row button { flex: 1; border-radius: 7px; padding: 5px; border: 1px solid var(--line); background: var(--raised); font-size: 12.5px; }
+.sysdlg .row button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.granted { text-align: center; color: var(--ok); font-weight: 600; margin-top: 14px; }
+.sfoot { display: flex; justify-content: space-between; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--line); background: var(--side); }
+
+/* LightCraft schematic */
+.lcnote { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: 10px; background: var(--open-soft); color: var(--ink); font-size: 12.5px; margin-bottom: 14px; }
+.lcnote b { color: var(--open); }
+.lcwin { display: grid; grid-template-rows: 42px minmax(0, 1fr) auto; height: 600px; }
+.lcbody { display: grid; grid-template-columns: 210px minmax(0, 1fr); min-height: 0; }
+.lcside { background: var(--side); border-right: 1px solid var(--line); padding: 12px 8px; overflow: auto; font-size: 13px; }
+.lcside h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 10px 8px 4px; font-weight: 600; }
+.lcside button { display: flex; justify-content: space-between; width: 100%; text-align: left; border: 0; background: none; padding: 5px 8px; border-radius: 6px; color: var(--ink); }
+.lcside button span { color: var(--muted); font-size: 12px; }
+.lcside button.sub { padding-left: 22px; }
+.lcside button[aria-current="true"] { background: var(--accent-soft); font-weight: 600; }
+.lcside button:disabled { cursor: default; color: var(--muted); }
+.lcmain { display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; min-height: 0; }
+.lctool { display: flex; gap: 10px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.lctool h2 { font-size: 15px; margin-right: auto; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button { border: 0; background: var(--panel); padding: 4px 10px; font-size: 12px; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.grid { overflow: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; align-content: start; grid-auto-rows: max-content; }
+.ph { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; }
+.ph[aria-selected="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ph.rejected .pic { opacity: .38; }
+.ph .pic { height: 120px; border-radius: 0; width: 100%; position: relative; }
+.ph .flag { position: absolute; top: 8px; left: 8px; z-index: 1; }
+.ph .info { flex: none; padding: 9px 10px 10px; display: flex; flex-direction: column; gap: 7px; }
+.ph .info strong { font-size: 12.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ph .info span { font-size: 11.5px; color: var(--muted); }
+.ph .acts { display: flex; gap: 6px; }
+.ph .acts button { flex: 1; border: 1px solid var(--line); background: var(--raised); border-radius: 6px; padding: 3px 4px; font-size: 12px; }
+.ph .acts button[aria-pressed="true"].keep { background: var(--ok-soft); color: var(--ok); border-color: transparent; font-weight: 600; }
+.ph .acts button[aria-pressed="true"].rej { background: var(--bad-soft); color: var(--bad); border-color: transparent; font-weight: 600; }
+.ph select { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 3px 6px; font-size: 12px; width: 100%; }
+.ph .tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.lcempty { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 50px 10px; }
+.lcfoot { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+.lcfoot .sp { margin-right: auto; }
+
+.toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 20px); opacity: 0; background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 13px; transition: .25s; pointer-events: none; z-index: 20; max-width: calc(100% - 32px); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 1000px) {
+  .below { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .below .c-log { grid-column: 1 / -1; order: 3; }
+}
+@media (max-width: 760px) {
+  .desk { height: auto; padding: 36px 10px 12px; display: flex; flex-direction: column; gap: 12px; }
+  .finder, .popover { position: static; width: 100%; min-width: 0; max-width: none; }
+  .notes { position: fixed; top: 10px; right: 10px; left: 10px; width: auto; }
+  .desk.popclosed .notes { right: 10px; }
+  .mb-left span { display: none; }
+  .fhead, .frow { grid-template-columns: minmax(0, 1fr) 70px; }
+  .fhead :last-child, .frow .meta.date { display: none; }
+  .below { grid-template-columns: minmax(0, 1fr); }
+  .form { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .form > label, .form > .lab { text-align: left; padding-top: 8px; font-weight: 600; }
+  .pbody, .sbody { padding: 18px 16px; }
+  .lcbody { grid-template-columns: minmax(0, 1fr); }
+  .lcside { display: none; }
+  .top { flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticon.busy.spin .b-sync, .ticon.done .b-done, .note, .frow.new { animation: none; }
+  .toast { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>LightCraft Pic Watcher <small>Mockup</small></h1>
+      <p>Klickbares Mockup mit Beispieldaten. Es liest keine Ordner, kopiert nichts und verbindet sich mit nichts. Probiere es mit „Bild herunterladen“ unter dem Schreibtisch aus.</p>
+    </div>
+    <button class="theme" id="theme" type="button">Hell / Dunkel</button>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Ansichten">
+    <button role="tab" type="button" data-view="desk" aria-selected="true">Menüleiste</button>
+    <button role="tab" type="button" data-view="settings" aria-selected="false">Einstellungen</button>
+    <button role="tab" type="button" data-view="setup" aria-selected="false">Ersteinrichtung</button>
+    <button role="tab" type="button" data-view="lc" aria-selected="false">In LightCraft sortieren</button>
+  </nav>
+
+  <!-- Menüleiste -->
+  <section id="view-desk" class="view" aria-label="Menüleiste">
+    <div class="desk" id="desk">
+      <div class="menubar">
+        <span class="mb-left"><b>Finder</b><span>Ablage</span><span>Bearbeiten</span><span>Darstellung</span><span>Gehe zu</span><span>Fenster</span></span>
+        <span class="mb-right">
+          <span class="dim" aria-hidden="true">●●●</span>
+          <button class="tray" id="tray" type="button" aria-haspopup="true" aria-expanded="true" aria-controls="pop" aria-label="LightCraft Pic Watcher"></button>
+          <span id="clock">Di. 24. Nov. 14:52</span>
+        </span>
+      </div>
+      <div class="finder" aria-label="Finder-Fenster Downloads">
+        <div class="fbar"><div class="lights" aria-hidden="true"><i></i><i></i><i></i></div><strong>Downloads</strong></div>
+        <div class="fhead"><span>Name</span><span>Größe</span><span>Hinzugefügt</span></div>
+        <div class="flist" id="dl"></div>
+        <div class="fstat" id="dlstat"></div>
+      </div>
+      <div class="popover" id="pop" role="dialog" aria-label="LightCraft Pic Watcher"></div>
+      <div class="notes" id="notes" aria-live="polite"></div>
+    </div>
+
+    <div class="below">
+      <section class="card">
+        <h2>Mockup steuern</h2>
+        <div class="sim">
+          <button class="btn primary" type="button" data-sim="one">Bild herunterladen</button>
+          <button class="btn" type="button" data-sim="three">Drei Bilder auf einmal</button>
+          <button class="btn" type="button" data-sim="raw">RAW-Datei herunterladen <small>48 MB</small></button>
+          <button class="btn" type="button" data-sim="dup">Ein Bild erneut herunterladen</button>
+          <button class="btn" type="button" data-sim="tiny">Kleines Logo <small>3 KB</small></button>
+          <button class="btn" type="button" data-sim="pdf">PDF herunterladen</button>
+          <hr>
+          <label class="toggle"><input type="checkbox" id="lcOpen" checked> LightCraft ist geöffnet</label>
+          <label class="toggle"><input type="checkbox" id="targetOk" checked> Zielordner erreichbar</label>
+        </div>
+      </section>
+      <section class="card c-log">
+        <h2>Was die App gerade tut</h2>
+        <ul class="log" id="log"></ul>
+      </section>
+      <section class="card">
+        <h2>Symbol in der Menüleiste</h2>
+        <div class="legend" id="legend"></div>
+        <p class="legend-note">Einfarbig wie die Systemsymbole. Beim Kopieren drehen sich die Pfeile, danach erscheint kurz ein Haken. Mit „Bewegung reduzieren“ in macOS bleiben die Pfeile stehen.</p>
+      </section>
+    </div>
+  </section>
+
+  <!-- Einstellungen -->
+  <section id="view-settings" class="view" hidden aria-label="Einstellungen">
+    <div class="window prefs">
+      <div class="titlebar"><div class="lights" aria-hidden="true"><i></i><i></i><i></i></div><strong id="ptitle">Allgemein</strong></div>
+      <div class="ptabs" role="tablist" id="ptabs"></div>
+      <div class="pbody" id="pbody"></div>
+    </div>
+  </section>
+
+  <!-- Ersteinrichtung -->
+  <section id="view-setup" class="view" hidden aria-label="Ersteinrichtung">
+    <div class="window setup">
+      <div class="titlebar"><div class="lights" aria-hidden="true"><i></i><i></i><i></i></div><strong>Willkommen beim LightCraft Pic Watcher</strong></div>
+      <div class="sbody" id="sbody"></div>
+      <div class="sfoot" id="sfoot"></div>
+    </div>
+  </section>
+
+  <!-- LightCraft -->
+  <section id="view-lc" class="view" hidden aria-label="In LightCraft sortieren">
+    <div class="lcnote"><span aria-hidden="true">ℹ︎</span><div><b>Schematische Darstellung, kein Bildschirmfoto von LightCraft.</b> Behalten, Ablehnen, Alben und Ordner sind Funktionen von LightCraft selbst. Der Pic Watcher legt die Bilder nur in den Zielordner; LightCraft übernimmt sie über seinen automatischen Import ins Album „<span id="lcAlbumName">Aus Downloads</span>“. In LightCraft gelten dafür die Tasten <span class="mono">P</span> (behalten) und <span class="mono">X</span> (ablehnen).</div></div>
+    <div class="window lcwin">
+      <div class="titlebar"><div class="lights" aria-hidden="true"><i></i><i></i><i></i></div><strong>LightCraft</strong><span>Bibliothek</span></div>
+      <div class="lcbody">
+        <nav class="lcside" id="lcside" aria-label="Bibliothek"></nav>
+        <div class="lcmain">
+          <div class="lctool" id="lctool"></div>
+          <div class="grid" id="grid" role="listbox" aria-label="Fotos" tabindex="0"></div>
+        </div>
+      </div>
+      <div class="lcfoot" id="lcfoot"></div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+
+/* ---------- tray icon ---------- */
+function icon(state, size = 20, spin = true) {
+  const h = Math.round(size * 0.9);
+  return `<svg class="ticon ${state}${spin ? " spin" : ""}" viewBox="0 0 20 18" width="${size}" height="${h}" aria-hidden="true">
+    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="1.5" y="2.5" width="14" height="11" rx="2.2"/>
+      <path d="M3.6 11.4l3.1-3.5 2.4 2.4 1.7-1.7 2.5 2.8"/>
+    </g>
+    <circle cx="11.6" cy="5.9" r="1.1" fill="currentColor"/>
+    <g class="badge">
+      <circle class="knock" cx="15.5" cy="13" r="4.3"/>
+      <g class="b-sync" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round">
+        <path d="M13.14 12.58A2.4 2.4 0 0 1 17.58 11.8"/><path d="M17.86 13.42A2.4 2.4 0 0 1 13.42 14.2"/>
+        <polygon points="18.1,12.7 18.4,11.3 16.8,12.2" fill="currentColor" stroke="none"/>
+        <polygon points="12.9,13.3 12.6,14.7 14.2,13.8" fill="currentColor" stroke="none"/>
+      </g>
+      <g class="b-done"><circle cx="15.5" cy="13" r="3.3" fill="currentColor"/><path d="M13.9 13.1l1.1 1.1 2.1-2.3" fill="none" stroke="var(--knock)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></g>
+      <g class="b-pause" fill="currentColor"><rect x="14" y="11.1" width="1.1" height="3.8" rx=".4"/><rect x="15.9" y="11.1" width="1.1" height="3.8" rx=".4"/></g>
+      <g class="b-warn"><circle cx="15.5" cy="13" r="3.3" fill="currentColor"/><path d="M15.5 11.3v2.1" stroke="var(--knock)" stroke-width="1.2" stroke-linecap="round"/><circle cx="15.5" cy="14.8" r=".6" fill="var(--knock)"/></g>
+    </g>
+  </svg>`;
+}
+
+/* ---------- state ---------- */
+const S = {
+  view: "desk", pop: true, paused: false, targetOk: true, lcOpen: true,
+  ptab: "general", setupStep: 0, perm: false,
+  lcAlbum: "Aus Downloads", lcFilter: "all", lcSel: null,
+  doneUntil: 0, seq: 100, notifyQueue: [], notifyTimer: 0,
+  set: {
+    watch: "~/Downloads", target: "~/Bilder/Aus Downloads", after: "keep", organize: "month",
+    login: true, notify: true, animate: true,
+    photos: true, raw: true, gif: false, psd: false, minKB: 20, onlyWeb: true, existing: false,
+    album: "Aus Downloads"
+  },
+  items: [
+    { id: 2, name: "IMG_0193.HEIC", kind: "HEIC", mb: 3.1, hue: 120, status: "inlc", time: "11:40", flag: "pick", albums: [] },
+    { id: 1, name: "sonnenuntergang-lissabon.jpg", kind: "JPEG", mb: 2.4, hue: 18, status: "inlc", time: "09:12", flag: null, albums: [] }
+  ],
+  downloads: [
+    { id: 2, name: "IMG_0193.HEIC", mb: 3.1, hue: 120, img: true, time: "11:40" },
+    { id: 90, name: "favicon-verein.png", mb: 0.003, hue: 260, img: true, time: "10:05" },
+    { id: 1, name: "sonnenuntergang-lissabon.jpg", mb: 2.4, hue: 18, img: true, time: "09:12" },
+    { id: 91, name: "Rechnung-Oktober-2026.pdf", mb: 0.21, ext: "PDF", time: "Gestern" },
+    { id: 92, name: "Präsentation-Q4.key", mb: 14.8, ext: "KEY", time: "Gestern" }
+  ],
+  log: []
+};
+const POOL = [
+  { name: "pexels-berge-am-morgen.jpg", kind: "JPEG", mb: 3.8, hue: 28 },
+  { name: "katze-im-schnee.webp", kind: "WebP", mb: 0.9, hue: 205 },
+  { name: "hochzeit-tischdeko-04.jpg", kind: "JPEG", mb: 5.2, hue: 340 },
+  { name: "nordlicht-tromsoe.avif", kind: "AVIF", mb: 1.6, hue: 165 },
+  { name: "IMG_4471.HEIC", kind: "HEIC", mb: 2.1, hue: 195 },
+  { name: "architektur-skizze.png", kind: "PNG", mb: 2.7, hue: 45 },
+  { name: "herbstwald-drohne.jpg", kind: "JPEG", mb: 6.4, hue: 32 },
+  { name: "portrait-studio-07.tif", kind: "TIFF", mb: 22.5, hue: 300 }
+];
+let poolIdx = 0;
+const ALBUMS = [
+  { name: "Inspiration" }, { name: "Familie" },
+  { name: "Lissabon", folder: "Reisen 2026" }, { name: "Norwegen", folder: "Reisen 2026" }
+];
+
+const now = () => { const d = new Date(); return d.toTimeString().slice(0, 8); };
+const hm = () => now().slice(0, 5);
+const fmtMB = mb => mb < 0.01 ? `${Math.max(1, Math.round(mb * 1024))} KB` : mb < 1 ? `${Math.round(mb * 1024)} KB` : `${mb.toFixed(1).replace(".", ",")} MB`;
+const sub = () => S.set.organize === "month" ? "2026-11/" : "";
+function log(text, cls = "") { S.log.unshift({ t: now(), text, cls }); S.log = S.log.slice(0, 60); renderLog(); }
+let toastTimer = 0;
+function toast(t) { const el = $("#toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2600); }
+
+/* ---------- simulation ---------- */
+function uniqueName(name) {
+  if (!S.downloads.some(d => d.name === name)) return name;
+  const dot = name.lastIndexOf("."); let n = 1, cand;
+  do { cand = `${name.slice(0, dot)} (${n})${name.slice(dot)}`; n++; } while (S.downloads.some(d => d.name === cand));
+  return cand;
+}
+function download(p, opt = {}) {
+  const id = ++S.seq;
+  const d = { id, name: uniqueName(p.name), mb: p.mb, hue: p.hue, img: !p.ext, ext: p.ext, partial: true, pct: 0, time: hm(), fresh: true };
+  S.downloads.unshift(d);
+  log(`Neue Datei im Download-Ordner: ${d.name}.download (noch unvollständig, wird beobachtet)`, "muted");
+  const ms = Math.min(2600, 800 + p.mb * 35), t0 = performance.now();
+  const tick = () => {
+    d.pct = Math.min(100, ((performance.now() - t0) / ms) * 100);
+    if (d.pct < 100) { renderDownloads(); setTimeout(tick, 120); return; }
+    d.partial = false; renderDownloads();
+    setTimeout(() => consider(d, p, opt), 450);
+  };
+  renderDownloads(); setTimeout(tick, 120);
+}
+function formatAllowed(p) {
+  if (p.kind === "GIF") return S.set.gif;
+  if (/RAW/.test(p.kind)) return S.set.raw;
+  return S.set.photos;
+}
+function consider(d, p, opt) {
+  if (p.ext) { log(`${d.name}: kein Bild. Wird nicht beachtet.`, "muted"); return; }
+  if (!formatAllowed(p)) { log(`${d.name}: Dateityp ${p.kind} ist in den Filtern ausgeschaltet.`, "muted"); return; }
+  if (p.mb * 1024 < S.set.minKB) { log(`${d.name}: nur ${fmtMB(p.mb)}, kleiner als ${S.set.minKB} KB. Vermutlich ein Symbol, wird nicht übernommen.`, "muted"); return; }
+  log(`${d.name}: Download fertig, Größe seit 2 s unverändert. Inhalt ist ${p.kind} (an den ersten Bytes geprüft, nicht an der Endung).`);
+  const it = { id: d.id, name: d.name, kind: p.kind, mb: p.mb, hue: p.hue, status: "queued", pct: 0, time: hm(), flag: null, albums: [], dupOf: opt.dupOf };
+  S.items.unshift(it);
+  pump();
+}
+function pump() {
+  render();
+  if (S.paused || !S.targetOk) {
+    const q = S.items.filter(i => i.status === "queued").length;
+    if (q) log(S.paused ? `Pausiert: ${q} Bild${q > 1 ? "er" : ""} wartet.` : `Zielordner nicht erreichbar: ${q} Bild${q > 1 ? "er" : ""} wartet.`, "warn");
+    return;
+  }
+  if (S.items.some(i => i.status === "copying")) return;
+  const next = [...S.items].reverse().find(i => i.status === "queued");
+  if (!next) return;
+  if (next.dupOf) {
+    next.status = "dup";
+    log(`${next.name}: gleiche Prüfsumme (SHA-256) wie „${next.dupOf}“ im Zielordner. Nicht noch einmal kopiert.`, "warn");
+    setTimeout(pump, 200); render(); return;
+  }
+  next.status = "copying"; next.pct = 0; render();
+  const ms = Math.min(3200, 700 + next.mb * 45), t0 = performance.now();
+  const tick = () => {
+    next.pct = Math.min(100, ((performance.now() - t0) / ms) * 100);
+    if (next.pct < 100) { renderPop(); setTimeout(tick, 90); return; }
+    next.status = "waiting";
+    log(`Kopiert nach ${S.set.target}/${sub()}${next.name}. Prüfsumme der Kopie stimmt.`, "ok");
+    if (S.set.after === "trash") {
+      S.downloads = S.downloads.filter(d => d.id !== next.id);
+      log(`Original von ${next.name} in den Papierkorb gelegt.`, "muted"); renderDownloads();
+    }
+    S.doneUntil = Date.now() + 1800; setTimeout(render, 1850);
+    queueNote(next.name);
+    lcPickup();
+    pump();
+  };
+  setTimeout(tick, 90);
+}
+function lcPickup() {
+  if (!S.lcOpen) {
+    const w = S.items.filter(i => i.status === "waiting").length;
+    if (w) log(`LightCraft ist geschlossen. ${w} Bild${w > 1 ? "er liegen" : " liegt"} im Zielordner und ${w > 1 ? "kommen" : "kommt"} beim nächsten Start in die Mediathek.`, "warn");
+    render(); return;
+  }
+  setTimeout(() => {
+    if (!S.lcOpen) return;
+    const w = S.items.filter(i => i.status === "waiting");
+    w.forEach(i => { i.status = "inlc"; });
+    if (w.length) log(`LightCraft hat ${w.length === 1 ? w[0].name : w.length + " Bilder"} aus dem überwachten Ordner übernommen (Album „${S.set.album}“).`, "ok");
+    render();
+  }, 2200);
+}
+function queueNote(name) {
+  if (!S.set.notify) return;
+  S.notifyQueue.push(name); clearTimeout(S.notifyTimer);
+  S.notifyTimer = setTimeout(() => {
+    const n = S.notifyQueue.length, first = S.notifyQueue[0]; S.notifyQueue = [];
+    const el = document.createElement("div"); el.className = "note";
+    el.innerHTML = `<div class="ic">${icon("idle", 18)}</div><div><strong>${n === 1 ? "Bild übernommen" : n + " Bilder übernommen"}</strong><span>${n === 1 ? esc(first) : "aus dem Download-Ordner"} → ${esc(S.set.target.split("/").pop())}${S.lcOpen ? ", gleich in LightCraft" : ""}</span></div>`;
+    $("#notes").prepend(el); setTimeout(() => el.remove(), 4200);
+  }, 700);
+}
+
+function sim(kind) {
+  if (kind === "one") download(POOL[poolIdx++ % POOL.length]);
+  if (kind === "three") for (let k = 0; k < 3; k++) setTimeout(() => download(POOL[poolIdx++ % POOL.length]), k * 350);
+  if (kind === "raw") download({ name: `DSC0${9214 + poolIdx++}.ARW`, kind: "Sony RAW", mb: 48.6, hue: 150 });
+  if (kind === "pdf") download({ name: "Reiseunterlagen.pdf", mb: 0.8, ext: "PDF" });
+  if (kind === "tiny") download({ name: "logo-klein.png", kind: "PNG", mb: 0.003, hue: 260 });
+  if (kind === "dup") {
+    const src = S.items.find(i => i.status === "inlc" || i.status === "waiting");
+    if (!src) { toast("Erst ein Bild herunterladen, dann gibt es ein Duplikat."); return; }
+    download({ name: src.name, kind: src.kind, mb: src.mb, hue: src.hue }, { dupOf: src.name });
+  }
+}
+
+/* ---------- render: desk ---------- */
+function trayState() {
+  if (!S.targetOk) return "warn";
+  if (S.paused) return "paused";
+  if (S.items.some(i => i.status === "copying" || i.status === "queued")) return "busy";
+  if (Date.now() < S.doneUntil) return "done";
+  return "idle";
+}
+function renderTray() {
+  const st = trayState();
+  const tr = $("#tray"); tr.innerHTML = icon(st, 20, S.set.animate && !reduced.matches);
+  tr.setAttribute("aria-expanded", String(S.pop));
+  const labels = { idle: "Bereit", busy: "Kopiert", done: "Fertig", paused: "Pausiert", warn: "Problem" };
+  tr.setAttribute("aria-label", `LightCraft Pic Watcher: ${labels[st]}`);
+  $("#desk").classList.toggle("popclosed", !S.pop);
+}
+function renderDownloads() {
+  $("#dl").innerHTML = S.downloads.map(d => {
+    const ic = d.img ? `<span class="thumb s" style="--h:${d.hue}"></span>` : `<span class="doc">${esc(d.ext || "")}</span>`;
+    const name = d.partial ? `<span class="partial">${esc(d.name)}.download</span>` : `<span>${esc(d.name)}</span>`;
+    const size = d.partial ? `<span class="mini" aria-label="${Math.round(d.pct)} Prozent"><i style="width:${d.pct}%"></i></span>` : `<span class="meta">${fmtMB(d.mb)}</span>`;
+    const cls = d.fresh ? " new" : ""; d.fresh = false;
+    return `<div class="frow${cls}"><span class="fn">${ic}${name}</span>${size}<span class="meta date">${/:/.test(d.time) ? "Heute, " + d.time : d.time}</span></div>`;
+  }).join("");
+  $("#dlstat").textContent = `${S.downloads.length} Objekte`;
+}
+const CHIP = {
+  queued: () => `<span class="chip open">Wartet</span>`,
+  copying: i => `<span class="chip acc">${Math.round(i.pct)} %</span>`,
+  waiting: () => S.lcOpen ? `<span class="chip open">Geht an LightCraft</span>` : `<span class="chip warn">Wartet auf LightCraft</span>`,
+  inlc: () => `<span class="chip ok">In LightCraft</span>`,
+  dup: () => `<span class="chip open">Schon vorhanden</span>`
+};
+function renderPop() {
+  const st = trayState();
+  const copying = S.items.find(i => i.status === "copying");
+  const today = S.items.filter(i => i.status === "inlc" || i.status === "waiting").length;
+  const queued = S.items.filter(i => i.status === "queued").length;
+  const head = {
+    idle: ["Auf dem neuesten Stand", `Heute ${today} Bild${today === 1 ? "" : "er"} übernommen`],
+    done: ["Auf dem neuesten Stand", `Heute ${today} Bild${today === 1 ? "" : "er"} übernommen`],
+    busy: [copying ? `Kopiere „${copying.name}“` : "Prüfe neue Downloads …", queued ? `Danach noch ${queued}` : "Mit Prüfsumme"],
+    paused: ["Pausiert", queued ? `${queued} neue${queued === 1 ? "s Bild wartet" : " Bilder warten"}` : "Neue Downloads warten, bis du fortsetzt"],
+    warn: ["Zielordner nicht erreichbar", "Neue Bilder warten, bis er wieder da ist"]
+  }[st];
+  const items = S.items.filter(i => i.status !== "deleted").slice(0, 7);
+  const list = items.length ? `<ul class="p-list">${items.map(i => `<li>
+      <span class="thumb m" style="--h:${i.hue}"></span>
+      <div class="tx"><strong title="${esc(i.name)}">${esc(i.name)}</strong>
+        <span>${fmtMB(i.mb)} · ${i.time}</span>
+        ${i.status === "copying" ? `<div class="bar"><i style="width:${i.pct}%"></i></div>` : ""}</div>
+      ${CHIP[i.status](i)}</li>`).join("")}</ul>` : `<div class="p-empty">Noch keine Bilder übernommen.</div>`;
+  const hints = [];
+  if (!S.targetOk) hints.push(`<div class="p-hint bad">„${esc(S.set.target)}“ ist nicht erreichbar, zum Beispiel weil das Laufwerk nicht verbunden ist. Es geht weiter, sobald der Ordner wieder da ist.</div>`);
+  if (!S.lcOpen && S.items.some(i => i.status === "waiting")) hints.push(`<div class="p-hint warn">LightCraft ist geschlossen. Die Bilder liegen sicher im Zielordner und kommen beim nächsten Start von LightCraft in die Mediathek.</div>`);
+  $("#pop").hidden = !S.pop;
+  $("#pop").innerHTML = `
+    <div class="p-head"><div class="appic">${icon(st, 22, S.set.animate && !reduced.matches)}</div>
+      <div class="tx"><strong>${esc(head[0])}</strong><span>${esc(head[1])}</span></div></div>
+    <div class="p-route" title="${esc(S.set.watch)} → ${esc(S.set.target)}"><code>${esc(S.set.watch)}</code><span aria-hidden="true">→</span><code>${esc(S.set.target)}</code></div>
+    ${hints.join("")}
+    ${list}
+    <div class="p-actions">
+      <button type="button" data-act="pause">${S.paused ? "Fortsetzen" : "Pausieren"}</button>
+      <button type="button" data-act="folder">Zielordner</button>
+      <button type="button" data-act="lc">LightCraft öffnen</button>
+    </div>
+    <div class="p-menu">
+      <button type="button" data-act="settings">Einstellungen … <kbd>⌘,</kbd></button>
+      <button type="button" data-act="setup">Ersteinrichtung erneut zeigen</button>
+      <button type="button" data-act="quit">LightCraft Pic Watcher beenden <kbd>⌘Q</kbd></button>
+    </div>`;
+}
+function renderLog() {
+  $("#log").innerHTML = S.log.length ? S.log.map(l => `<li><time>${l.t}</time><span class="${l.cls}">${esc(l.text)}</span></li>`).join("")
+    : `<li><time>—</time><span class="muted">Beobachtet ${esc(S.set.watch)}. Wartet auf neue Bilder.</span></li>`;
+}
+function renderLegend() {
+  const L = [["idle", "Bereit"], ["busy", "Kopiert"], ["done", "Fertig"], ["paused", "Pausiert"], ["warn", "Problem"]];
+  $("#legend").innerHTML = L.map(([s, t]) => `<div><span class="sw">${icon(s, 30, S.set.animate && !reduced.matches)}</span>${t}</div>`).join("");
+}
+
+/* ---------- render: settings ---------- */
+const PT = [
+  ["general", "Allgemein", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/></svg>'],
+  ["filter", "Filter", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3.5 5h17l-6.5 7.6V19l-4 1.6v-8z"/></svg>'],
+  ["lightcraft", "LightCraft", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M5.5 16l4.2-4.6 3 3 2.2-2.2 3.6 3.8"/><circle cx="15.5" cy="9" r="1.3"/></svg>'],
+  ["about", "Über", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.4v.2" stroke-linecap="round"/></svg>']
+];
+const TARGETS = ["~/Bilder/Aus Downloads", "~/Bilder/LightCraft/Eingang", "/Volumes/Fotos/Eingang"];
+const chk = (k, label, help = "") => `<label class="check"><input type="checkbox" data-k="${k}" ${S.set[k] ? "checked" : ""}><span>${label}${help ? `<br><span class="help">${help}</span>` : ""}</span></label>`;
+const rad = (k, v, label, help = "") => `<label class="radio"><input type="radio" name="${k}" data-k="${k}" value="${v}" ${S.set[k] === v ? "checked" : ""}><span>${label}${help ? `<br><span class="help">${help}</span>` : ""}</span></label>`;
+function renderSettings() {
+  $("#ptabs").innerHTML = PT.map(([k, t, svg]) => `<button role="tab" type="button" data-ptab="${k}" aria-selected="${S.ptab === k}">${svg}${t}</button>`).join("");
+  $("#ptitle").textContent = PT.find(p => p[0] === S.ptab)[1];
+  let h = "";
+  if (S.ptab === "general") h = `<div class="form">
+      <span class="lab">Überwachter Ordner</span>
+      <div class="ctl"><div class="pathpick"><select disabled><option>${esc(S.set.watch)}</option></select><button class="btn" type="button" data-act="nochoose">Ändern …</button></div>
+        <span class="help">Nur neue Dateien zählen. Was schon im Ordner liegt, bleibt unberührt.</span></div>
+      <span class="lab">Zielordner</span>
+      <div class="ctl"><div class="pathpick"><select data-k="target">${TARGETS.map(t => `<option ${t === S.set.target ? "selected" : ""}>${esc(t)}</option>`).join("")}</select></div>
+        <span class="help">Hierhin kopiert der Pic Watcher. Diesen Ordner überwacht LightCraft (siehe „LightCraft“).</span></div>
+      <span class="lab">Unterordner</span>
+      <div class="ctl">${rad("organize", "month", "Nach Monat, z. B. <span class=\"mono\">2026-11</span>")}${rad("organize", "flat", "Keine, alles in einen Ordner")}</div>
+      <span class="lab">Original im Download-Ordner</span>
+      <div class="ctl">${rad("after", "keep", "Liegen lassen")}${rad("after", "trash", "In den Papierkorb legen", "Erst nachdem die Kopie per Prüfsumme bestätigt ist. Nie endgültig löschen.")}</div>
+      <hr>
+      <span class="lab">Allgemein</span>
+      <div class="ctl">${chk("login", "Beim Anmelden starten")}${chk("notify", "Mitteilung zeigen, wenn Bilder übernommen wurden")}${chk("animate", "Symbol in der Menüleiste animieren", "Die Systemeinstellung „Bewegung reduzieren“ hat Vorrang.")}</div>
+    </div>`;
+  if (S.ptab === "filter") h = `<div class="form">
+      <span class="lab">Dateitypen</span>
+      <div class="ctl">${chk("photos", "Fotos", "JPEG, HEIC, PNG, WebP, AVIF, TIFF, JPEG XL")}${chk("raw", "RAW-Dateien", "DNG, CR3, NEF, ARW, RAF, ORF, RW2 und weitere, die LightCraft liest")}${chk("gif", "GIF", "Meist Animationen oder Grafiken, deshalb aus")}${chk("psd", "Photoshop-Dateien (PSD, PSB)")}</div>
+      <label for="minKB">Mindestgröße</label>
+      <div class="ctl"><span><input type="number" id="minKB" data-k="minKB" min="0" step="10" value="${S.set.minKB}"> KB</span><span class="help">Kleinere Dateien sind meist Symbole oder Logos.</span></div>
+      <span class="lab">Herkunft</span>
+      <div class="ctl">${chk("onlyWeb", "Nur Dateien, die macOS als Download kennzeichnet", "Bilder, die du selbst in den Ordner schiebst, bleiben dann liegen.")}${chk("existing", "Beim ersten Start auch vorhandene Bilder übernehmen")}</div>
+      <hr>
+      <span class="lab">Immer</span>
+      <div class="ctl"><ul class="list">
+        <li><b>Unfertige Downloads</b> (<span class="mono">.download</span>, <span class="mono">.crdownload</span>, <span class="mono">.part</span>) werden erst genommen, wenn die Größe 2 Sekunden stillsteht.</li>
+        <li><b>Der Inhalt zählt,</b> nicht die Endung: eine umbenannte Datei, die kein Bild ist, wird nicht kopiert.</li>
+        <li><b>Duplikate</b> erkennt die App an der Prüfsumme (SHA-256) und kopiert sie nicht noch einmal.</li>
+      </ul></div>
+    </div>`;
+  if (S.ptab === "lightcraft") h = `
+    <div class="statusbox${S.lcOpen ? "" : " warn"}"><span aria-hidden="true">${S.lcOpen ? "✓" : "!"}</span><div><strong>${S.lcOpen ? "LightCraft 0.21.1 gefunden und geöffnet" : "LightCraft 0.21.1 gefunden, aber geschlossen"}</strong><span>${S.lcOpen ? "Neue Bilder erscheinen nach wenigen Sekunden in der Mediathek." : "Die Bilder warten im Zielordner, bis LightCraft wieder läuft."}</span></div></div>
+    <div class="form">
+      <span class="lab">So kommt ein Bild in LightCraft</span>
+      <div class="ctl"><span class="help" style="font-size:13px">LightCraft hat einen eigenen automatischen Import. Er überwacht einen Ordner und nimmt neue Fotos auf, sobald sie vollständig sind. Diesen Ordner setzt du einmal auf den Zielordner des Pic Watchers.</span>
+        <ol class="steps">
+          <li>In LightCraft <b>Einstellungen → Import → Automatischer Import</b> öffnen.</li>
+          <li>Bei <b>Überwachter Ordner</b> „Auswählen …“ und <code>${esc(S.set.target)}</code> wählen.</li>
+          <li><b>In die Bibliothek kopieren</b> ausschalten. Sonst liegt jedes Bild zweimal auf der Platte.</li>
+          <li>Bei <b>Album</b> <code>${esc(S.set.album)}</code> eintragen.</li>
+        </ol>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" data-act="copypath">Pfad kopieren</button><button class="btn" type="button" data-act="lc">LightCraft öffnen</button></div></div>
+      <label for="album">Album in LightCraft</label>
+      <div class="ctl"><input type="text" id="album" data-k="album" value="${esc(S.set.album)}"><span class="help">Nur zur Anzeige und für die Anleitung oben. Eingetragen wird das Album in LightCraft.</span></div>
+      <hr>
+      <span class="lab">Gut zu wissen</span>
+      <div class="ctl"><ul class="list">
+        <li>LightCraft übernimmt nur, <b>solange es geöffnet ist</b>. Bilder, die vorher kommen, nimmt es beim nächsten Start.</li>
+        <li>LightCraft kennt <b>einen</b> überwachten Ordner. Wer ihn schon für Tethering oder einen Scanner nutzt, muss sich entscheiden.</li>
+        <li>Der Pic Watcher schreibt <b>nicht</b> in die LightCraft-Bibliothek und nutzt nicht den Steuerkanal von LightCraft. Der ist ohne Anmeldung erreichbar und deshalb standardmäßig aus.</li>
+      </ul></div>
+    </div>`;
+  if (S.ptab === "about") h = `<div class="form">
+      <span class="lab">Version</span><div class="ctl"><span>0.1 (Mockup)</span></div>
+      <span class="lab">Lizenz</span><div class="ctl"><span>Open Source, wahlweise <b>MIT</b> oder <b>Apache 2.0</b> (<span class="mono">MIT OR Apache-2.0</span>)</span><span class="help">Dieselbe Lizenz wie LightCraft und der LightCraft Cloud Importer.</span></div>
+      <span class="lab">Quellcode</span><div class="ctl"><span class="mono">github.com/KSKHugo/lightcraft-pic-watcher</span></div>
+      <span class="lab">Datenschutz</span><div class="ctl"><ul class="list">
+        <li><b>Kein Netzwerkcode.</b> Die App sendet nichts, auch keine Statistik.</li>
+        <li><b>Nur lesen</b> im Download-Ordner. Löschen nur auf Wunsch, und dann in den Papierkorb.</li>
+        <li><b>Nichts wird überschrieben.</b> Gibt es den Namen schon, bekommt die Kopie „-1“, „-2“ …</li>
+      </ul></div>
+      <span class="lab">Marken</span><div class="ctl"><span class="help">Ein unabhängiges Projekt, kein offizielles LightCraft-Produkt.</span></div>
+    </div>`;
+  $("#pbody").innerHTML = h;
+}
+
+/* ---------- render: setup ---------- */
+function renderSetup() {
+  const s = S.setupStep;
+  const dots = `<div class="dots" aria-hidden="true">${[0, 1, 2].map(i => `<i class="${i <= s ? "on" : ""}"></i>`).join("")}</div>`;
+  let body = "";
+  if (s === 0) body = `${dots}<h2>Zugriff auf „Downloads“</h2><p class="lead">Der Pic Watcher muss sehen, was in deinem Download-Ordner ankommt. macOS fragt dich dafür einmal. Die App liest dort nur und sendet nichts ins Internet.</p>
+    <div class="sysdlg"><div class="appic">${icon("idle", 26)}</div><strong>„LightCraft Pic Watcher“ möchte auf Dateien in deinem Ordner „Downloads“ zugreifen.</strong><p>Du kannst das später in den Systemeinstellungen unter „Datenschutz &amp; Sicherheit“ ändern.</p>
+    <div class="row"><button type="button" data-act="deny">Nicht erlauben</button><button type="button" class="primary" data-act="allow">Erlauben</button></div></div>
+    ${S.perm ? `<p class="granted">✓ Zugriff erlaubt</p>` : ""}`;
+  if (s === 1) body = `${dots}<h2>Wohin sollen die Bilder?</h2><p class="lead">Neue Bilder werden in diesen Ordner kopiert. Das Original im Download-Ordner bleibt, wenn du nichts anderes einstellst.</p>
+    <div class="form"><span class="lab">Zielordner</span><div class="ctl"><div class="pathpick"><select data-k="target">${TARGETS.map(t => `<option ${t === S.set.target ? "selected" : ""}>${esc(t)}</option>`).join("")}</select></div></div>
+    <span class="lab">Unterordner</span><div class="ctl">${rad("organize", "month", "Nach Monat")}${rad("organize", "flat", "Keine")}</div>
+    <span class="lab">Danach</span><div class="ctl">${chk("login", "Beim Anmelden starten")}</div></div>`;
+  if (s === 2) body = `${dots}<h2>LightCraft verbinden</h2><p class="lead">LightCraft holt neue Bilder selbst ab, wenn es den Zielordner überwacht. Das stellst du einmal in LightCraft ein.</p>
+    <ol class="steps"><li>In LightCraft <b>Einstellungen → Import → Automatischer Import</b> öffnen.</li><li><b>Überwachter Ordner:</b> <code>${esc(S.set.target)}</code></li><li><b>In die Bibliothek kopieren</b> aus.</li><li><b>Album:</b> <code>${esc(S.set.album)}</code></li></ol>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap"><button class="btn" type="button" data-act="copypath">Pfad kopieren</button><button class="btn" type="button" data-act="lc">LightCraft öffnen</button></div>`;
+  $("#sbody").innerHTML = body;
+  $("#sfoot").innerHTML = `<button class="btn" type="button" data-act="back" ${s === 0 ? "disabled" : ""}>Zurück</button>
+    <button class="btn primary" type="button" data-act="next" ${s === 0 && !S.perm ? "disabled" : ""}>${s === 2 ? "Fertig" : "Weiter"}</button>`;
+}
+
+/* ---------- render: LightCraft ---------- */
+const inAlbum = (i, a) => a === S.set.album ? true : i.albums.includes(a);
+function lcItems() {
+  return S.items.filter(i => i.status === "inlc" && inAlbum(i, S.lcAlbum)).filter(i =>
+    S.lcFilter === "all" ? true : S.lcFilter === "open" ? !i.flag : i.flag === S.lcFilter);
+}
+function renderLC() {
+  $("#lcAlbumName").textContent = S.set.album;
+  const inlc = S.items.filter(i => i.status === "inlc");
+  const cnt = a => inlc.filter(i => inAlbum(i, a)).length;
+  const btn = (a, cls = "") => `<button type="button" class="${cls}" data-album="${esc(a)}" aria-current="${S.lcAlbum === a}">${esc(a)}<span>${cnt(a)}</span></button>`;
+  $("#lcside").innerHTML = `<h3>Bibliothek</h3><button type="button" disabled>Alle Fotos<span>1.284</span></button><button type="button" disabled>Zuletzt hinzugefügt<span>${inlc.length}</span></button>
+    <h3>Alben</h3>${btn(S.set.album)}${ALBUMS.filter(a => !a.folder).map(a => btn(a.name)).join("")}
+    <h3>Ordner</h3><button type="button" disabled>Reisen 2026</button>${ALBUMS.filter(a => a.folder).map(a => btn(a.name, "sub")).join("")}`;
+  const isInbox = S.lcAlbum === S.set.album;
+  const seg = [["all", "Alle"], ["open", "Zu prüfen"], ["pick", "Behalten"], ["reject", "Abgelehnt"]];
+  $("#lctool").innerHTML = `<h2>${esc(S.lcAlbum)}</h2><div class="seg" role="group" aria-label="Filter">${seg.map(([k, t]) => `<button type="button" data-lcf="${k}" aria-pressed="${S.lcFilter === k}">${t}</button>`).join("")}</div>`;
+  const list = lcItems();
+  const opts = ALBUMS.map(a => `<option value="${esc(a.name)}">${a.folder ? esc(a.folder) + " ▸ " : ""}${esc(a.name)}</option>`).join("");
+  $("#grid").innerHTML = list.length ? list.map(i => `<div class="ph${i.flag === "reject" ? " rejected" : ""}" role="option" data-id="${i.id}" aria-selected="${S.lcSel === i.id}">
+      <div class="thumb pic" style="--h:${i.hue}">${i.flag ? `<span class="flag chip ${i.flag === "pick" ? "ok" : "bad"}">${i.flag === "pick" ? "Behalten" : "Abgelehnt"}</span>` : ""}</div>
+      <div class="info"><strong title="${esc(i.name)}">${esc(i.name)}</strong><span>${esc(i.kind)} · ${fmtMB(i.mb)} · heute ${i.time}</span>
+        <div class="acts"><button type="button" class="keep" data-flag="pick" aria-pressed="${i.flag === "pick"}">Behalten</button><button type="button" class="rej" data-flag="reject" aria-pressed="${i.flag === "reject"}">Ablehnen</button></div>
+        ${isInbox ? `<select data-addalbum aria-label="Zu Album hinzufügen"><option value="">Zu Album hinzufügen …</option>${opts}</select>` : ""}
+        ${i.albums.length ? `<div class="tags">${i.albums.map(a => `<span class="chip open">${esc(a)}</span>`).join("")}</div>` : ""}</div></div>`).join("")
+    : `<div class="lcempty">${isInbox ? (S.items.some(i => i.status === "inlc") ? "Keine Fotos für diesen Filter." : "Noch nichts da. Lade unter „Menüleiste“ ein Bild herunter.") : "Noch keine Bilder aus dem Download-Ordner in diesem Album."}</div>`;
+  const rej = inlc.filter(i => i.flag === "reject").length;
+  const open = inlc.filter(i => !i.flag && inAlbum(i, S.set.album)).length;
+  $("#lcfoot").innerHTML = `<span class="sp">${open} zu prüfen · Auswahl mit Klick, dann <span class="mono">P</span> behalten, <span class="mono">X</span> ablehnen, <span class="mono">U</span> Markierung entfernen</span>
+    <button class="btn" type="button" data-act="delrej" ${rej ? "" : "disabled"}>Abgelehnte löschen (${rej})</button>`;
+}
+
+/* ---------- render all ---------- */
+function render() {
+  renderTray(); renderPop(); renderDownloads();
+  if (S.view === "settings") renderSettings();
+  if (S.view === "setup") renderSetup();
+  if (S.view === "lc") renderLC();
+}
+function show(view) {
+  S.view = view;
+  $$(".tabs [role=tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === view)));
+  $$(".view").forEach(v => { v.hidden = v.id !== "view-" + view; });
+  render();
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", e => {
+  const t = e.target.closest("button, [data-id]"); if (!t) return;
+  if (t.dataset.view) return show(t.dataset.view);
+  if (t.id === "tray") { S.pop = !S.pop; return render(); }
+  if (t.dataset.sim) return sim(t.dataset.sim);
+  if (t.dataset.ptab) { S.ptab = t.dataset.ptab; return renderSettings(); }
+  if (t.dataset.album) { S.lcAlbum = t.dataset.album; S.lcFilter = "all"; return renderLC(); }
+  if (t.dataset.lcf) { S.lcFilter = t.dataset.lcf; return renderLC(); }
+  if (t.dataset.flag) {
+    const it = S.items.find(i => i.id === +t.closest("[data-id]").dataset.id);
+    it.flag = it.flag === t.dataset.flag ? null : t.dataset.flag; S.lcSel = it.id; return renderLC();
+  }
+  const a = t.dataset.act;
+  if (a === "pause") { S.paused = !S.paused; log(S.paused ? "Pausiert. Neue Downloads werden gemerkt, aber nicht kopiert." : "Fortgesetzt.", S.paused ? "warn" : ""); return pump(); }
+  if (a === "folder") return toast(`Öffnet ${S.set.target} im Finder.`);
+  if (a === "lc") { if (!S.lcOpen) { S.lcOpen = true; $("#lcOpen").checked = true; log("LightCraft gestartet."); lcPickup(); } return show("lc"); }
+  if (a === "settings") { S.pop = false; return show("settings"); }
+  if (a === "setup") { S.pop = false; S.setupStep = 0; return show("setup"); }
+  if (a === "quit") return toast("Im Mockup bleibt die App an. In echt endet hier die Überwachung.");
+  if (a === "nochoose") return toast("Im Mockup bleibt der Download-Ordner ausgewählt.");
+  if (a === "copypath") return toast(`Pfad kopiert: ${S.set.target}`);
+  if (a === "allow") { S.perm = true; return renderSetup(); }
+  if (a === "deny") { S.perm = false; return toast("Ohne Zugriff kann die App nichts sehen. Sie erklärt dann, wo man ihn nachträglich erteilt."); }
+  if (a === "back") { S.setupStep = Math.max(0, S.setupStep - 1); return renderSetup(); }
+  if (a === "next") {
+    if (S.setupStep < 2) { S.setupStep++; return renderSetup(); }
+    S.pop = true; show("desk"); return toast("Eingerichtet. Der Pic Watcher läuft jetzt in der Menüleiste.");
+  }
+  if (a === "delrej") {
+    const n = S.items.filter(i => i.status === "inlc" && i.flag === "reject");
+    n.forEach(i => { i.status = "deleted"; });
+    toast(`${n.length} Foto${n.length === 1 ? "" : "s"} in LightCraft gelöscht (landet in „Zuletzt gelöscht“).`); return render();
+  }
+  const ph = t.closest(".ph");
+  if (ph && t.tagName !== "SELECT") { S.lcSel = +ph.dataset.id; $$(".ph").forEach(p => p.setAttribute("aria-selected", String(p === ph))); $("#grid").focus({ preventScroll: true }); }
+});
+document.addEventListener("change", e => {
+  const el = e.target;
+  if (el.id === "lcOpen") { S.lcOpen = el.checked; log(el.checked ? "LightCraft gestartet." : "LightCraft beendet.", el.checked ? "" : "warn"); lcPickup(); if (S.view === "settings") renderSettings(); return; }
+  if (el.id === "targetOk") { S.targetOk = el.checked; log(el.checked ? "Zielordner wieder erreichbar." : `Zielordner ${S.set.target} nicht erreichbar.`, el.checked ? "ok" : "warn"); return pump(); }
+  if (el.matches("[data-addalbum]") && el.value) {
+    const it = S.items.find(i => i.id === +el.closest("[data-id]").dataset.id);
+    if (!it.albums.includes(el.value)) it.albums.push(el.value);
+    toast(`„${it.name}“ zu „${el.value}“ hinzugefügt.`); return renderLC();
+  }
+  const k = el.dataset.k; if (!k) return;
+  S.set[k] = el.type === "checkbox" ? el.checked : el.type === "number" ? Math.max(0, +el.value || 0) : el.value;
+  if (k === "album") { if (S.lcAlbum !== S.set.album && !ALBUMS.some(x => x.name === S.lcAlbum)) S.lcAlbum = S.set.album; }
+  if (k === "animate") renderLegend();
+  render();
+});
+document.addEventListener("keydown", e => {
+  if (S.view !== "lc" || S.lcSel == null || e.target.matches("input, select, textarea")) return;
+  const it = S.items.find(i => i.id === S.lcSel); if (!it) return;
+  const k = e.key.toLowerCase();
+  if (k === "p") it.flag = "pick"; else if (k === "x") it.flag = "reject"; else if (k === "u") it.flag = null; else return;
+  e.preventDefault(); renderLC();
+});
+reduced.addEventListener("change", () => { renderLegend(); render(); });
+$("#theme").addEventListener("click", () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+});
+
+/* clock */
+function clock() {
+  const d = new Date(), wd = ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."][d.getDay()];
+  const mo = ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sept.", "Okt.", "Nov.", "Dez."][d.getMonth()];
+  $("#clock").textContent = `${wd} ${d.getDate()}. ${mo} ${hm()}`;
+}
+clock(); setInterval(clock, 20000);
+renderLegend(); renderLog(); render();
+</script>
+</body>
+</html>

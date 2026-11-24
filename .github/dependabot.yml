@@ -1,0 +1,8 @@
+# Keeps the pinned GitHub Actions current (security fixes included). The app itself
+# has no third-party Swift packages yet.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

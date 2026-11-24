@@ -1,0 +1,33 @@
+.DS_Store
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+dist/
+__pycache__/
+.claude/settings.local.json
+
+# Secrets and personal data must never reach this public repository
+.env
+.env.*
+*.pem
+*.p8
+*.p12
+
+# Photos: test images belong in Tests/Fixtures as small, license-free files only
+*.jpg
+*.jpeg
+*.heic
+*.png
+*.webp
+*.avif
+*.tif
+*.tiff
+*.dng
+*.arw
+*.cr3
+*.nef
+*.raf
+!Tests/Fixtures/**
+!AppPackaging/**

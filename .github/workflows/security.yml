@@ -1,0 +1,67 @@
+# The same security check the pre-push hook runs on the Mac (Scripts/security_check.sh),
+# once more on GitHub for every push and pull request: secrets, vulnerable
+# dependencies, code patterns. Weekly as well, so new rules and advisories are applied
+# to code that has not changed.
+name: Security
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GITLEAKS_VERSION: "8.30.1"
+  OSV_SCANNER_VERSION: "2.7.0"
+  SEMGREP_VERSION: "1.182.0"
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # semgrep lives in a virtual environment tied to the runner's Python.
+      - name: Python version
+        id: python
+        run: echo "version=$(python3 -c 'import platform; print(platform.python_version())')" >> "$GITHUB_OUTPUT"
+
+      # The scanners are kept between runs; a new version in `env` (or a new Python on
+      # the runner) makes a new cache.
+      # The rules semgrep downloads are not cached: every run gets the current ones.
+      - name: Restore the scanners
+        id: scanners
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/scanners
+          key: scanners-${{ runner.os }}-py${{ steps.python.outputs.version }}-gitleaks${{ env.GITLEAKS_VERSION }}-osv${{ env.OSV_SCANNER_VERSION }}-semgrep${{ env.SEMGREP_VERSION }}
+
+      - name: Install the scanners
+        if: steps.scanners.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/scanners/bin"
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C "$HOME/scanners/bin" gitleaks
+          curl -sSfL -o "$HOME/scanners/bin/osv-scanner" \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          chmod +x "$HOME/scanners/bin/osv-scanner"
+          python3 -m venv "$HOME/scanners/semgrep"
+          "$HOME/scanners/semgrep/bin/pip" install --quiet "semgrep==${SEMGREP_VERSION}"
+
+      - name: Put the scanners on the path
+        run: |
+          echo "$HOME/scanners/bin" >> "$GITHUB_PATH"
+          echo "$HOME/scanners/semgrep/bin" >> "$GITHUB_PATH"
+
+      - name: Security check
+        run: bash Scripts/security_check.sh
