@@ -431,7 +431,7 @@ const S = {
   lcAlbum: "Aus Downloads", lcFilter: "all", lcSel: null,
   doneUntil: 0, seq: 100, notifyQueue: [], notifyTimer: 0,
   set: {
-    watch: "~/Downloads", target: "~/Bilder/Aus Downloads", after: "keep", organize: "month",
+    watch: "~/Downloads", target: "~/Bilder/Aus Downloads", after: "keep", organize: "flat",
     login: true, notify: true, animate: true,
     photos: true, raw: true, gif: false, psd: false, minKB: 20, onlyWeb: true, existing: false,
     album: "Aus Downloads"
@@ -681,9 +681,7 @@ function renderSettings() {
         <span class="help">Nur neue Dateien zählen. Was schon im Ordner liegt, bleibt unberührt.</span></div>
       <span class="lab">Zielordner</span>
       <div class="ctl"><div class="pathpick"><select data-k="target">${TARGETS.map(t => `<option ${t === S.set.target ? "selected" : ""}>${esc(t)}</option>`).join("")}</select></div>
-        <span class="help">Hierhin kopiert der Pic Watcher. Diesen Ordner überwacht LightCraft (siehe „LightCraft“).</span></div>
-      <span class="lab">Unterordner</span>
-      <div class="ctl">${rad("organize", "month", "Nach Monat, z. B. <span class=\"mono\">2026-11</span>")}${rad("organize", "flat", "Keine, alles in einen Ordner")}</div>
+        <span class="help">Hierhin kopiert der Pic Watcher, ohne Unterordner: LightCraft liest beim automatischen Import nur die oberste Ebene.</span></div>
       <span class="lab">Original im Download-Ordner</span>
       <div class="ctl">${rad("after", "keep", "Liegen lassen")}${rad("after", "trash", "In den Papierkorb legen", "Erst nachdem die Kopie per Prüfsumme bestätigt ist. Nie endgültig löschen.")}</div>
       <hr>
@@ -752,7 +750,6 @@ function renderSetup() {
     ${S.perm ? `<p class="granted">✓ Zugriff erlaubt</p>` : ""}`;
   if (s === 1) body = `${dots}<h2>Wohin sollen die Bilder?</h2><p class="lead">Neue Bilder werden in diesen Ordner kopiert. Das Original im Download-Ordner bleibt, wenn du nichts anderes einstellst.</p>
     <div class="form"><span class="lab">Zielordner</span><div class="ctl"><div class="pathpick"><select data-k="target">${TARGETS.map(t => `<option ${t === S.set.target ? "selected" : ""}>${esc(t)}</option>`).join("")}</select></div></div>
-    <span class="lab">Unterordner</span><div class="ctl">${rad("organize", "month", "Nach Monat")}${rad("organize", "flat", "Keine")}</div>
     <span class="lab">Danach</span><div class="ctl">${chk("login", "Beim Anmelden starten")}</div></div>`;
   if (s === 2) body = `${dots}<h2>LightCraft verbinden</h2><p class="lead">LightCraft holt neue Bilder selbst ab, wenn es den Zielordner überwacht. Das stellst du einmal in LightCraft ein.</p>
     <ol class="steps"><li>In LightCraft <b>Einstellungen → Import → Automatischer Import</b> öffnen.</li><li><b>Überwachter Ordner:</b> <code>${esc(S.set.target)}</code></li><li><b>In die Bibliothek kopieren</b> aus.</li><li><b>Album:</b> <code>${esc(S.set.album)}</code></li></ol>
