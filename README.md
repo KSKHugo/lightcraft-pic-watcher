@@ -2,7 +2,11 @@
 
 Eine kleine macOS-App für die Menüleiste. Sie beobachtet den Download-Ordner, kopiert jedes neu heruntergeladene Bild in einen Ordner deiner Wahl und übergibt es an die Mediathek von [LightCraft](https://github.com/storytold/lightcraft). Dort entscheidest du, ob du das Bild behältst und in welches Album oder welchen Ordner es kommt.
 
-**Stand: Version 0.1, früher Stand.** Die App läuft und ist mit Testordnern ausprobiert: Kopie, Prüfsumme, Duplikate, Filter, Symbol-Animation, Menü, Einstellungen und Ersteinrichtung. Mit dem echten Download-Ordner und einem eingerichteten automatischen Import in LightCraft ist sie noch nicht geprüft. Das [klickbare Mockup](2026-11-24_LightCraft-Pic-Watcher_App-Mockup.html) zeigt das Konzept mit Beispieldaten.
+**Stand: Version 0.1, früher Stand.** Ein erster Test mit dem echten Download-Ordner lief durch. Mit Testordnern geprüft sind außerdem Kopie, Prüfsumme, Duplikate, Filter, Symbol-Animation, Menü, Einstellungen und Ersteinrichtung. Das [klickbare Mockup](2026-11-24_LightCraft-Pic-Watcher_App-Mockup.html) zeigt das ursprüngliche Konzept mit Beispieldaten.
+
+## Download
+
+Fertige Versionen liegen unter [Releases](https://github.com/KSKHugo/lightcraft-pic-watcher/releases) als Disk-Image. Die App ist mit einer Developer ID signiert und von Apple notarisiert. Sie läuft ab macOS 14 auf Apple Silicon und Intel. Zum Installieren die App aus dem Image in den Ordner „Programme“ ziehen und einmal öffnen; danach sitzt sie in der Menüleiste. Für „Beim Anmelden starten“ sollte sie in „Programme“ liegen.
 
 ## Ablauf
 
